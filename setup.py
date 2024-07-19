@@ -20,15 +20,15 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='lsdo_project_template',
-    version=get_version('lsdo_project_template/__init__.py'),
-    author='Author name',
-    author_email='author@gmail.com',
+    name='lsdo_serpent',
+    version=get_version('lsdo_serpent/__init__.py'),
+    author='Andrew Fletcher',
+    author_email='afletcher168@gmail.com',
     license='LGPLv3+',
-    keywords='python project template repository package',
-    url='http://github.com/LSDOlab/lsdo_project_template',
-    download_url='http://pypi.python.org/pypi/lsdo_project_template',
-    description='A template repository/package for LSDOlab projects',
+    keywords='large-scale design optimization multidisciplinary soft robotics',
+    url='http://github.com/LSDOlab/lsdo_serpent',
+    download_url='http://pypi.python.org/pypi/lsdo_serpent',
+    description='A repository for the large-scale design optimization of a soft robotic serpent.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     packages=find_packages(),
