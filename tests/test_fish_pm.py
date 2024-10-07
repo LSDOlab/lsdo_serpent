@@ -6,56 +6,83 @@ from VortexAD.core.panel_method.unsteady_panel_solver import unsteady_panel_solv
 
 from lsdo_serpent.utils.plot import plot_wireframe, plot_pressure_distribution
 
-# mesh import
+scale = 1.
+
+# ==== mesh import ====
+# file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh.pickle'
 file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
 
 file = open(file_name, 'rb')
 mesh = pickle.load(file) # (nt, nc, ns, 3)
 file.close()
 
+# ==== mesh velocity import ====
+# file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh_velocities.pickle'
+file_name = str(MESH_PATH) + '/structured_fish_mesh_velocities.pickle'
+
+file = open(file_name, 'rb')
+mesh_velocity = pickle.load(file) # (nt, nc, ns, 3)
+file.close()
+
 num_nodes = 1
 dt = 0.01
 nt = mesh.shape[0]
 mesh = mesh.reshape((num_nodes,) + mesh.shape) # (nn, nt, nc, ns, 3)
-mesh_velocity = np.zeros_like(mesh) # NOTE: TEMPORARY
-mesh_velocity[:,:,:,:,0] = 1.
+mesh_velocity = mesh_velocity.reshape((num_nodes,) + mesh_velocity.shape)
+
+# We use the computed fish velocities for the collocation point velocities
+# NOTE: we want collocation velocities at the panel centers; we get this by averaging the velocities as such
+coll_vel = (mesh_velocity[:,:,:1,:1,:] + mesh_velocity[:,:,1:,:1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:1,1:,:])/4.
+
+# here we set up the free-stream velocity grid for each MESH NODE 
+mesh_free_stream = np.zeros_like(mesh_velocity)
+mesh_free_stream[:,:,:,:,0] = 1*scale
+
 
 recorder = csdl.Recorder(inline=False)
 recorder.start()
 
 mesh = csdl.Variable(value=mesh)
-mesh_velocity = csdl.Variable(value=mesh_velocity)
+mesh_velocity = csdl.Variable(value=mesh_free_stream)
+coll_vel = csdl.Variable(value=coll_vel)
 
 mesh_list = [mesh]
 mesh_velocity_list = [mesh_velocity]
-
+coll_vel_list = [coll_vel]
+# exit()
 output_dict, mesh_dict, wake_mesh_dict, mu, sigma, mu_wake = unsteady_panel_solver(
-    mesh_list, mesh_velocity_list, dt=dt, free_wake=False
+    mesh_list, 
+    mesh_velocity_list, 
+    coll_vel_list,
+    dt=dt, 
+    free_wake=False
 )
+# OUTPUTS NEEDED TO COMPUTE FISH STATE
+panel_forces = output_dict['surface_0']['panel_forces']
 
-coll_points = mesh_dict['surface_0']['panel_center']
+# OUTPUTS NEEDED FOR VISUALIZATION
 Cp = output_dict['surface_0']['Cp']
 wake_mesh = wake_mesh_dict['surface_0']['mesh']
-panel_forces = output_dict['surface_0']['panel_forces']
 
 recorder.stop()
 jax_sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     additional_inputs=[mesh, mesh_velocity], # list of outputs (put in csdl variable)
-    additional_outputs=[mu, sigma, mu_wake, wake_mesh, coll_points, Cp, panel_forces], # list of outputs (put in csdl variable)
+    additional_outputs=[mu, sigma, mu_wake, wake_mesh, Cp, panel_forces], # list of outputs (put in csdl variable)
 )
 jax_sim.run()
 
 mesh = jax_sim[mesh]
 wake_mesh = jax_sim[wake_mesh]
-coll_points = jax_sim[coll_points]
 Cp = jax_sim[Cp]
 panel_forces = jax_sim[panel_forces]
 mu = jax_sim[mu]
 mu_wake = jax_sim[mu_wake]
 
-if False:
-    plot_pressure_distribution(mesh, Cp)
+print('fishy done')
 
-if True:
-    plot_wireframe(mesh, wake_mesh, mu, mu_wake, nt, interactive=False, backend='cv', name='fish_demo')
+if False:
+    plot_pressure_distribution(mesh, Cp, interactive=True)
+
+if False:
+    plot_wireframe(mesh, wake_mesh, mu, mu_wake, nt, side_view=True, interactive=False, backend='cv', name='fish_demo')

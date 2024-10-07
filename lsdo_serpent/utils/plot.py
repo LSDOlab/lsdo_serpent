@@ -100,9 +100,9 @@ def plot_wireframe(mesh, wake_mesh, mu, mu_wake, nt, interactive = False, plot_m
 def plot_pressure_distribution(mesh, Cp, surface_color='white', cmap='jet', interactive=False, top_view=False, front_top_view=False):
     vedo.settings.default_backend = 'vtk'
     axs = Axes(
-        xrange=(0,3),
-        yrange=(-7.5, 7.5),
-        zrange=(0, 5),
+        xrange=(-.25,.5),
+        yrange=(-0.5, 0.5),
+        zrange=(-.25, .25),
     )
     vp = Plotter(
         bg='white',
@@ -123,12 +123,12 @@ def plot_pressure_distribution(mesh, Cp, surface_color='white', cmap='jet', inte
     for k in range(nx-1):
         for j in range(ny-1):
             connectivity.append([k*ny+j,(k+1)*ny+j,(k+1)*ny+j+1,k*ny+j+1])
-        # vps = Mesh([np.reshape(mesh_points, (-1, 3)), connectivity], c=surface_color, alpha=1.).linecolor('black')
-        vps = Mesh([np.reshape(mesh_points, (-1, 3)), connectivity], c=surface_color, alpha=1.)
+        vps = Mesh([np.reshape(mesh_points, (-1, 3)), connectivity], c=surface_color, alpha=1.).linecolor('black')
+        # vps = Mesh([np.reshape(mesh_points, (-1, 3)), connectivity], c=surface_color, alpha=1.)
     Cp_color = np.reshape(Cp[:,-2,:,:], (-1,1))
-    Cp_min, Cp_max = np.min(Cp[:,-2,:,:]), np.max(Cp[:,0,:,:])
-    # Cp_min, Cp_max = -0.4, 1.
-    Cp_min, Cp_max = -4., 1.
+    Cp_min, Cp_max = np.min(Cp[:,-2,:,:]), np.max(Cp[:,-2,:,:])
+    # Cp_min, Cp_max = -5., 3.
+    # Cp_min, Cp_max = -4., 1.
     vps.cmap(cmap, Cp_color, on='cells', vmin=Cp_min, vmax=Cp_max)
     # vps.cmap(cmap, Cp_color, on='cells', vmin=-0.4, vmax=1)
     vps.add_scalarbar()
