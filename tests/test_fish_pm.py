@@ -4,10 +4,9 @@ import pickle
 from lsdo_serpent import MESH_PATH
 from VortexAD.core.panel_method.unsteady_panel_solver import unsteady_panel_solver
 
-from lsdo_serpent.utils.plot import plot_wireframe, plot_pressure_distribution
+from lsdo_serpent.utils.plot import plot_wireframe, plot_pressure_distribution, plot_transient_pressure_distribution
 
-scale = 1.
-
+V_inf = 1.
 # ==== mesh import ====
 # file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh.pickle'
 file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
@@ -32,11 +31,11 @@ mesh_velocity = mesh_velocity.reshape((num_nodes,) + mesh_velocity.shape)
 
 # We use the computed fish velocities for the collocation point velocities
 # NOTE: we want collocation velocities at the panel centers; we get this by averaging the velocities as such
-coll_vel = (mesh_velocity[:,:,:1,:1,:] + mesh_velocity[:,:,1:,:1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:1,1:,:])/4.
+coll_vel = (mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
 
 # here we set up the free-stream velocity grid for each MESH NODE 
 mesh_free_stream = np.zeros_like(mesh_velocity)
-mesh_free_stream[:,:,:,:,0] = 1*scale
+mesh_free_stream[:,:,:,:,0] = V_inf
 
 
 recorder = csdl.Recorder(inline=False)
@@ -81,8 +80,14 @@ mu_wake = jax_sim[mu_wake]
 
 print('fishy done')
 
+F_net_time = np.sum(panel_forces.reshape(panel_forces.shape[1:]), axis=(1,2))
+F_avg = np.average(F_net_time, axis=0)
+
 if False:
     plot_pressure_distribution(mesh, Cp, interactive=True)
+
+if True:
+    plot_transient_pressure_distribution(mesh, Cp, side_view=True, backend='cv', interactive=False)
 
 if False:
     plot_wireframe(mesh, wake_mesh, mu, mu_wake, nt, side_view=True, interactive=False, backend='cv', name='fish_demo')
