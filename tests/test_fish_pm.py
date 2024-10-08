@@ -11,8 +11,8 @@ scale = 1.
 
 # ==== mesh import ====
 # file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh.pickle'
-# file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
-file_name = str(MESH_PATH) + '/panel_mesh.pickle'
+file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
+# file_name = str(MESH_PATH) + '/panel_mesh.pickle'
 
 file = open(file_name, 'rb')
 mesh = pickle.load(file) # (nt, nc, ns, 3)
@@ -20,8 +20,8 @@ file.close()
 
 # ==== mesh velocity import ====
 # file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh_velocities.pickle'
-# file_name = str(MESH_PATH) + '/structured_fish_mesh_velocities.pickle'
-file_name = str(MESH_PATH) + '/panel_mesh_velocities.pickle'
+file_name = str(MESH_PATH) + '/structured_fish_mesh_velocities.pickle'
+# file_name = str(MESH_PATH) + '/panel_mesh_velocities.pickle'
 
 file = open(file_name, 'rb')
 mesh_velocity = pickle.load(file) # (nt, nc, ns, 3)
@@ -64,7 +64,7 @@ recorder.start()
 
 mesh = csdl.Variable(value=mesh)
 mesh_velocity = csdl.Variable(value=mesh_free_stream)
-coll_vel = csdl.Variable(value=coll_vel)
+coll_vel = csdl.Variable(value=-coll_vel)
 
 mesh_list = [mesh]
 mesh_velocity_list = [mesh_velocity]
@@ -94,8 +94,8 @@ jax_sim.run()
 mesh = jax_sim[mesh]
 wake_mesh = jax_sim[wake_mesh]
 Cp = jax_sim[Cp]
-panel_forces = jax_sim[panel_forces]
-panel_forces *= 1e3 # scale density to water
+# panel_forces = jax_sim[panel_forces]
+# panel_forces *= 1e3 # scale density to water
 mu = jax_sim[mu]
 mu_wake = jax_sim[mu_wake]
 
@@ -110,13 +110,14 @@ print('fishy done')
 # plt.plot(x_forces_across_time)
 # plt.show()
 
-free_stream_velocities = np.linspace(0.01, 5., 15)
+# free_stream_velocities = np.linspace(0.1, 1.5, 15)
+free_stream_velocities = np.linspace(0.1, 5, 15)
 # free_stream_velocities = [10]
 output_forces = np.zeros_like(free_stream_velocities)
 for i, cruise_speed in enumerate(free_stream_velocities):
     jax_sim[mesh_velocity][:,:,:,:,0] = cruise_speed
     jax_sim.run()
-    panel_forces_output = jax_sim[panel_forces]*1000
+    panel_forces_output = jax_sim[panel_forces]*1000# / (1/2*1000*cruise_speed**2*0.025)
     panel_forces_output = np.sum(panel_forces_output[0,:-1,:,:,0])
     output_forces[i] = panel_forces_output
     print(output_forces[i])
