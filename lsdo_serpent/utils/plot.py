@@ -209,7 +209,7 @@ def plot_transient_pressure_distribution(mesh, Cp, name='unsteady_Cp', surface_c
             vps = Mesh([np.reshape(mesh_points, (-1, 3)), connectivity], c=surface_color, alpha=1.).linecolor('black')
             # vps = Mesh([np.reshape(mesh_points, (-1, 3)), connectivity], c=surface_color, alpha=1.)
         Cp_color = np.reshape(Cp[:,t,:,:], (-1,1))
-        # Cp_min, Cp_max = np.min(Cp[:,-2,:,:]), np.max(Cp[:,-2,:,:])
+        Cp_min, Cp_max = np.min(Cp[:,t,:,:]), np.max(Cp[:,t,:,:])
         # Cp_min, Cp_max = -5., 3.
         # Cp_min, Cp_max = -4., 1.
         vps.cmap(cmap, Cp_color, on='cells', vmin=Cp_min, vmax=Cp_max)

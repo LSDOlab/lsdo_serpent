@@ -5,12 +5,13 @@ from lsdo_serpent import MESH_PATH
 from VortexAD.core.panel_method.unsteady_panel_solver import unsteady_panel_solver
 
 from lsdo_serpent.utils.plot import plot_wireframe, plot_pressure_distribution, plot_transient_pressure_distribution
+import matplotlib.pyplot as plt
 
 V_inf = 1.
 # ==== mesh import ====
 # file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh.pickle'
-# file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
-file_name = str(MESH_PATH) + '/panel_mesh.pickle'
+file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
+# file_name = str(MESH_PATH) + '/panel_mesh.pickle'
 
 file = open(file_name, 'rb')
 mesh = pickle.load(file) # (nt, nc, ns, 3)
@@ -18,8 +19,8 @@ file.close()
 
 # ==== mesh velocity import ====
 # file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh_velocities.pickle'
-# file_name = str(MESH_PATH) + '/structured_fish_mesh_velocities.pickle'
-file_name = str(MESH_PATH) + '/panel_mesh_velocities.pickle'
+file_name = str(MESH_PATH) + '/structured_fish_mesh_velocities.pickle'
+# file_name = str(MESH_PATH) + '/panel_mesh_velocities.pickle'
 
 file = open(file_name, 'rb')
 mesh_velocity = pickle.load(file) # (nt, nc, ns, 3)
@@ -42,7 +43,7 @@ mesh_velocity = mesh_velocity.reshape((num_nodes,) + mesh_velocity.shape)
 
 # We use the computed fish velocities for the collocation point velocities
 # NOTE: we want collocation velocities at the panel centers; we get this by averaging the velocities as such
-coll_vel = (mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
+coll_vel = -(mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
 
 print('coll_vel', coll_vel[0,0])
 
@@ -92,8 +93,8 @@ jax_sim.run()
 mesh = jax_sim[mesh]
 wake_mesh = jax_sim[wake_mesh]
 Cp = jax_sim[Cp]
-panel_forces = jax_sim[panel_forces]
-panel_forces *= 1e3 # scale density to water
+# panel_forces = jax_sim[panel_forces]
+# panel_forces *= 1e3 # scale density to water
 mu = jax_sim[mu]
 mu_wake = jax_sim[mu_wake]
 
@@ -108,8 +109,8 @@ print('fishy done')
 # plt.plot(x_forces_across_time)
 # plt.show()
 
-free_stream_velocities = np.linspace(0.01, 5., 15)
-# free_stream_velocities = [10]
+# free_stream_velocities = np.linspace(0.01, 5., 15)
+free_stream_velocities = [0.5]
 output_forces = np.zeros_like(free_stream_velocities)
 for i, cruise_speed in enumerate(free_stream_velocities):
     jax_sim[mesh_velocity][:,:,:,:,0] = cruise_speed
