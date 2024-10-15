@@ -43,15 +43,15 @@ mesh_velocity = mesh_velocity.reshape((num_nodes,) + mesh_velocity.shape)
 
 # We use the computed fish velocities for the collocation point velocities
 # NOTE: we want collocation velocities at the panel centers; we get this by averaging the velocities as such
-coll_vel = -(mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
+coll_vel = (mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
 
 print('coll_vel', coll_vel[0,0])
 
 # here we set up the free-stream velocity grid for each MESH NODE 
 mesh_free_stream = np.zeros_like(mesh_velocity)
 # mesh_free_stream[:,:,:,:,0] = 0.01
-mesh_free_stream[:,:,:,:,0] = 0.25
-# mesh_free_stream[:,:,:,:,0] = 1.
+# mesh_free_stream[:,:,:,:,0] = 0.25
+mesh_free_stream[:,:,:,:,0] = 1.
 # mesh_free_stream[:,:,:,:,0] = 2.
 # mesh_free_stream[:,:,:,:,0] = 5.
 # mesh_free_stream[:,:,:,:,0] = 10.
@@ -88,15 +88,15 @@ jax_sim = csdl.experimental.JaxSimulator(
     additional_inputs=[mesh, mesh_velocity], # list of outputs (put in csdl variable)
     additional_outputs=[mu, sigma, mu_wake, wake_mesh, Cp, panel_forces], # list of outputs (put in csdl variable)
 )
-jax_sim.run()
+# jax_sim.run()
 
-mesh = jax_sim[mesh]
-wake_mesh = jax_sim[wake_mesh]
-Cp = jax_sim[Cp]
-# panel_forces = jax_sim[panel_forces]
-# panel_forces *= 1e3 # scale density to water
-mu = jax_sim[mu]
-mu_wake = jax_sim[mu_wake]
+# mesh = jax_sim[mesh]
+# wake_mesh = jax_sim[wake_mesh]
+# Cp = jax_sim[Cp]
+# # panel_forces = jax_sim[panel_forces]
+# # panel_forces *= 1e3 # scale density to water
+# mu = jax_sim[mu]
+# mu_wake = jax_sim[mu_wake]
 
 print('fishy done')
 # x_forces_across_time = np.sum(panel_forces[0,:-1,:,:,0], axis=(1,2))
@@ -124,17 +124,30 @@ free_stream_velocities = np.linspace(0.1, 1., 11)
 # free_stream_velocities = np.hstack([free_stream_velocities, np.array([0.25])])
 # free_stream_velocities = [10]
 # free_stream_velocities = [0.5]
+# free_stream_velocities = np.linspace(0, 10, 10)
+# free_stream_velocities = np.linspace(0, 3., 10)
+# free_stream_velocities = [.25]
 output_forces = np.zeros_like(free_stream_velocities)
 for i, cruise_speed in enumerate(free_stream_velocities):
     jax_sim[mesh_velocity][:,:,:,:,0] = cruise_speed
     jax_sim.run()
     panel_forces_output = jax_sim[panel_forces]*1000# / (1/2*1000*cruise_speed**2*0.025)
     panel_forces_output = np.sum(panel_forces_output[0,:-1,:,:,0])
-    drag = 1/2*water_density*cruise_speed**2*drag_coefficient*height*length
+    # drag = 1/2*water_density*cruise_speed**2*drag_coefficient*height*length
     # drag = 0.
-    output_forces[i] = panel_forces_output - drag
+    # output_forces[i] = panel_forces_output - drag
+    panel_forces_output = jax_sim[panel_forces]*1000
+    panel_forces_output = np.sum(panel_forces_output[0,:-1,:,:,0], axis=(1,2))
+    avg_force = np.average(panel_forces_output, axis=0)
+    output_forces[i] = avg_force
     print(output_forces[i])
     print('cruise_speed', cruise_speed)
+
+mesh = jax_sim[mesh]
+wake_mesh = jax_sim[wake_mesh]
+Cp = jax_sim[Cp]
+mu = jax_sim[mu]
+mu_wake = jax_sim[mu_wake]
 
 plt.plot(free_stream_velocities, output_forces)
 plt.show()
@@ -148,7 +161,7 @@ plt.show()
 # drag = 1/2*water_density*cruise_speed**2*drag_coefficient*height*length
 # print(drag)
 # print(drag_coefficient)
-exit()
+# exit()
 
 
 if True:
@@ -157,5 +170,5 @@ if True:
 if False:
     plot_transient_pressure_distribution(mesh, Cp, side_view=True, backend='cv', interactive=False)
 
-if False:
+if True:
     plot_wireframe(mesh, wake_mesh, mu, mu_wake, nt, side_view=True, interactive=False, backend='cv', name='fish_demo')

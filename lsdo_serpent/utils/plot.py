@@ -211,7 +211,8 @@ def plot_transient_pressure_distribution(mesh, Cp, name='unsteady_Cp', surface_c
         Cp_color = np.reshape(Cp[:,t,:,:], (-1,1))
         Cp_min, Cp_max = np.min(Cp[:,t,:,:]), np.max(Cp[:,t,:,:])
         # Cp_min, Cp_max = -5., 3.
-        # Cp_min, Cp_max = -4., 1.
+        # Cp_min, Cp_max = -4., 4.
+        # Cp_min = -5.
         vps.cmap(cmap, Cp_color, on='cells', vmin=Cp_min, vmax=Cp_max)
         # vps.cmap(cmap, Cp_color, on='cells', vmin=-0.4, vmax=1)
         vps.add_scalarbar()
