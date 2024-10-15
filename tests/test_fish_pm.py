@@ -4,11 +4,10 @@ import pickle
 from lsdo_serpent import MESH_PATH
 from VortexAD.core.panel_method.unsteady_panel_solver import unsteady_panel_solver
 
-from lsdo_serpent.utils.plot import plot_wireframe, plot_pressure_distribution
+from lsdo_serpent.utils.plot import plot_wireframe, plot_pressure_distribution, plot_transient_pressure_distribution
 import matplotlib.pyplot as plt
 
-scale = 1.
-
+V_inf = 1.
 # ==== mesh import ====
 # file_name = str(MESH_PATH) + '/coarse_structured_fish_mesh.pickle'
 file_name = str(MESH_PATH) + '/structured_fish_mesh.pickle'
@@ -44,7 +43,7 @@ mesh_velocity = mesh_velocity.reshape((num_nodes,) + mesh_velocity.shape)
 
 # We use the computed fish velocities for the collocation point velocities
 # NOTE: we want collocation velocities at the panel centers; we get this by averaging the velocities as such
-coll_vel = (mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
+coll_vel = -(mesh_velocity[:,:,:-1,:-1,:] + mesh_velocity[:,:,1:,:-1,:] + mesh_velocity[:,:,1:,1:,:] + mesh_velocity[:,:,:-1,1:,:])/4.
 
 print('coll_vel', coll_vel[0,0])
 
@@ -64,7 +63,7 @@ recorder.start()
 
 mesh = csdl.Variable(value=mesh)
 mesh_velocity = csdl.Variable(value=mesh_free_stream)
-coll_vel = csdl.Variable(value=-coll_vel)
+coll_vel = csdl.Variable(value=coll_vel)
 
 mesh_list = [mesh]
 mesh_velocity_list = [mesh_velocity]
@@ -110,25 +109,53 @@ print('fishy done')
 # plt.plot(x_forces_across_time)
 # plt.show()
 
-# free_stream_velocities = np.linspace(0.1, 1.5, 15)
-free_stream_velocities = np.linspace(0.1, 5, 15)
+water_density = 1000
+cruise_speed = 0.25
+height = 6.672872336443397501e-2
+length = 4.505850728940037797e-1
+# # drag_coefficient = 0.6363882549343707
+# drag_coefficient = 0.02067545877401697
+# drag_coefficient = (1.4972332801562531 + 13.46866572427703)/2
+drag_coefficient = 1.4972332801562531
+# # drag = 1/2*water_density*cruise_speed**2*drag_coefficient*height*length
+
+free_stream_velocities = np.linspace(0.1, 1., 11)
+# free_stream_velocities = np.linspace(0.1, 5, 15)
+# free_stream_velocities = np.hstack([free_stream_velocities, np.array([0.25])])
 # free_stream_velocities = [10]
+# free_stream_velocities = [0.5]
 output_forces = np.zeros_like(free_stream_velocities)
 for i, cruise_speed in enumerate(free_stream_velocities):
     jax_sim[mesh_velocity][:,:,:,:,0] = cruise_speed
     jax_sim.run()
     panel_forces_output = jax_sim[panel_forces]*1000# / (1/2*1000*cruise_speed**2*0.025)
     panel_forces_output = np.sum(panel_forces_output[0,:-1,:,:,0])
-    output_forces[i] = panel_forces_output
+    drag = 1/2*water_density*cruise_speed**2*drag_coefficient*height*length
+    # drag = 0.
+    output_forces[i] = panel_forces_output - drag
     print(output_forces[i])
     print('cruise_speed', cruise_speed)
 
 plt.plot(free_stream_velocities, output_forces)
 plt.show()
 
+# jax_sim[mesh_velocity][:,:,:,:,0] = cruise_speed
+# jax_sim.run()
+# thrust = np.sum(jax_sim[panel_forces][0,:-1,:,:,0]*1000)
+# print(thrust)
+# print(cruise_speed)
+# drag_coefficient = thrust*2/(water_density*cruise_speed**2*height*length)
+# drag = 1/2*water_density*cruise_speed**2*drag_coefficient*height*length
+# print(drag)
+# print(drag_coefficient)
+exit()
+
 
 if True:
     plot_pressure_distribution(mesh, Cp, interactive=True)
 
-if True:
+if False:
+    plot_transient_pressure_distribution(mesh, Cp, side_view=True, backend='cv', interactive=False)
+
+if False:
     plot_wireframe(mesh, wake_mesh, mu, mu_wake, nt, side_view=True, interactive=False, backend='cv', name='fish_demo')
